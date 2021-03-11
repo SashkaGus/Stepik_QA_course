@@ -14,7 +14,13 @@ class FileTrans:
 
     def file_old(self):
         cur_date = datetime.now().date()
-        self.file_cr_date = datetime.strptime(self.path[::-1][:10][::-1], '%Y/%m/%d').date()
+        try:
+            self.file_cr_date = datetime.strptime(self.path[::-1][:10][::-1], '%Y/%m/%d').date()
+        except ValueError:
+            logging.error(ValueError.args)
+            print('Invalid path')
+            return 0
+
         delta = cur_date - self.file_cr_date
         logging.debug('Сheck the file creation time %d days', delta.days)
         return True if delta.days > 90 else False
@@ -27,19 +33,29 @@ class FileTrans:
         return True if round(free / total * 100, 2) < 10 else False
 
     def transfer(self):
-        if self.file_old() and self.disk_usage():
-            os.chdir(self.path)
+        if self.file_old() or self.disk_usage():
+            try:
+                os.chdir(self.path.split('/')[-5])  # choose arch directory
+            except IndexError:
+                path_len = len(self.path.split('/'))
+                os.chdir(self.path.split('/')[-path_len])
             arch_folder = os.path.join('archive', str(self.file_cr_date).replace('-', '/'))
-            os.makedirs(arch_folder)
-            arch_filename = str(self.file_cr_date)
-            logging.debug('Creating archive file %s', arch_filename)
-            with zipfile.ZipFile(arch_filename, 'w') as zpf:
-                for dirpath, dirnames, filenames in os.walk(self.path):
-                    for name in dirnames:
-                        new_path = os.path.normpath(os.path.join(dirpath, name))
-                        zpf.write(new_path, os.path.relpath(new_path, self.path))
-                    for name in filenames:
-                        new_path = os.path.normpath(os.path.join(dirpath, name))
-                        if os.path.isfile(new_path):
-                            zpf.write(new_path, os.path.relpath(new_path, self.path))
-            shutil.move(arch_filename, arch_folder)
+            try:
+                os.makedirs(arch_folder)
+            except FileExistsError:
+                shutil.rmtree(arch_folder, ignore_errors=True)  # remove dir
+                os.makedirs(arch_folder)
+            for dirpath, dirnames, filenames in os.walk(self.path):
+                for name in filenames:
+                    if name.endswith('.mp3') or name.endswith('.wav'):
+                        with zipfile.ZipFile(arch_folder + '/' + name[:-4] + '.zip', 'w') as zpf:
+                            new_path = os.path.normpath(os.path.join(dirpath, name))
+                            zpf.write(new_path, os.path.relpath(new_path, self.path),
+                                      compress_type=zipfile.ZIP_DEFLATED)
+                            os.remove(new_path)
+
+
+if __name__ == '__main__':
+    user_path = input("Enter path in format: <dir>/year/month/day: ")
+    new_trans = FileTrans(user_path)
+    new_trans.transfer()
