@@ -49,6 +49,7 @@ class FileTrans:
                 for name in filenames:
                     if name.endswith('.mp3') or name.endswith('.wav'):
                         with zipfile.ZipFile(arch_folder + '/' + name[:-4] + '.zip', 'w') as zpf:
+                            logging.debug('New arch created %s', name[:-4] + '.zip')
                             new_path = os.path.normpath(os.path.join(dirpath, name))
                             zpf.write(new_path, os.path.relpath(new_path, self.path),
                                       compress_type=zipfile.ZIP_DEFLATED)
