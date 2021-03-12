@@ -16,24 +16,29 @@ class FileTrans:
         cur_date = datetime.now().date()
         try:
             self.file_cr_date = datetime.strptime(self.path[::-1][:10][::-1], '%Y/%m/%d').date()
-        except ValueError:
-            logging.error(ValueError.args)
+        except ValueError as VE:
+            logging.error(str(VE))
             print('Invalid path')
-            return 0
-
+            exit()
         delta = cur_date - self.file_cr_date
         logging.debug('Сheck the file creation time %d days', delta.days)
         return True if delta.days > 90 else False
 
     def disk_usage(self):
-        total, used, free = shutil.disk_usage(self.path)
+        total, used, free = 0, 0, 0
+        try:
+            total, used, free = shutil.disk_usage(self.path)
+        except FileNotFoundError as FNFE:
+            logging.error(str(FNFE))
+            print('Invalid path')
+            exit()
         total = total // (2 ** 30)
         free = free // (2 ** 30)
         logging.debug('Check disk space %d', round(free / total * 100, 2))
         return True if round(free / total * 100, 2) < 10 else False
 
     def transfer(self):
-        if self.file_old() or self.disk_usage():
+        if self.file_old() and self.disk_usage():
             try:
                 os.chdir(self.path.split('/')[-5])  # choose arch directory
             except IndexError:
@@ -45,7 +50,7 @@ class FileTrans:
             except FileExistsError:
                 shutil.rmtree(arch_folder, ignore_errors=True)  # remove dir
                 os.makedirs(arch_folder)
-            for dirpath, dirnames, filenames in os.walk(self.path):
+            for dirpath, _, filenames in os.walk(self.path):
                 for name in filenames:
                     if name.endswith('.mp3') or name.endswith('.wav'):
                         with zipfile.ZipFile(arch_folder + '/' + name[:-4] + '.zip', 'w') as zpf:
