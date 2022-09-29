@@ -1,1 +1,1 @@
-Репозитарий с задачами курса по автотестированию https://stepik.org/course/575/syllabus
+Репозитарий с финальной задачей курса по автотестированию https://stepik.org/course/575/syllabus
