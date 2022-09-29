@@ -1,1 +1,0 @@
-Stepik QA course tasks
